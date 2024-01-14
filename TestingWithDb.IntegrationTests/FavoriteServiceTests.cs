@@ -6,7 +6,6 @@ using TestingWithDb.IntegrationTests.Setup;
 
 namespace TestingWithDb.IntegrationTests;
 
-[Collection(nameof(DatabaseTestCollection))]
 public class FavoriteServiceTests : DatabaseTest, IAsyncLifetime
 {
     private readonly FavoriteService _service;
@@ -60,8 +59,8 @@ public class FavoriteServiceTests : DatabaseTest, IAsyncLifetime
 
     private async Task SeedDb()
     {
-        _existingProduct = Fixture.Build<Product>().Create();
-        _existingUser = Fixture.Build<User>().Create();
+        _existingProduct = Fixture.Create<Product>();
+        _existingUser = Fixture.Create<User>();
 
         await Insert(_existingUser);
         await Insert(_existingProduct);

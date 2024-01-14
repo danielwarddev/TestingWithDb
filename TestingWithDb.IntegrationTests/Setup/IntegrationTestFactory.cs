@@ -19,6 +19,7 @@ public class DatabaseTestCollection : ICollectionFixture<IntegrationTestFactory>
 public class IntegrationTestFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
     private readonly PostgreSqlContainer _container = new PostgreSqlBuilder()
+        .WithImage("postgres:latest") // You may want to change this to be the version your production db is on
         .WithDatabase("db")
         .WithUsername("postgres")
         .WithPassword("postgres")
@@ -74,13 +75,11 @@ public static class ServiceCollectionExtensions
 {
     public static void RemoveDbContext<T>(this IServiceCollection services) where T : DbContext
     {
-        //var descriptor = services.SingleOrDefault(x => x.ServiceType == typeof(DbContextOptions<T>));
-        //if (descriptor != null)
-        //{
-        //    services.Remove(descriptor);
-        //}
-        services.Remove(services.SingleOrDefault(service => typeof(DbContextOptions<T>) == service.ServiceType));
-        services.Remove(services.SingleOrDefault(service => typeof(DbConnection) == service.ServiceType));
+        var descriptor = services.SingleOrDefault(x => x.ServiceType == typeof(DbContextOptions<T>));
+        if (descriptor != null)
+        {
+            services.Remove(descriptor);
+        }
     }
 
     public static void EnsureDbCreated<T>(this IServiceCollection services) where T : DbContext

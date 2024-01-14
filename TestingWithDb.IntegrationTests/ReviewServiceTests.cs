@@ -6,7 +6,6 @@ using TestingWithDb.IntegrationTests.Setup;
 
 namespace TestingWithDb.IntegrationTests;
 
-[Collection(nameof(DatabaseTestCollection))]
 public class ReviewServiceTests : DatabaseTest, IAsyncLifetime
 {
     private readonly ReviewService _service;

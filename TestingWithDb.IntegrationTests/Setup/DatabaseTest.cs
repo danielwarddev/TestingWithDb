@@ -3,6 +3,7 @@ using TestingWithDb.Database;
 
 namespace TestingWithDb.IntegrationTests.Setup;
 
+[Collection(nameof(DatabaseTestCollection))]
 public abstract class DatabaseTest : IAsyncLifetime
 {
     private Func<Task> _resetDatabase;
