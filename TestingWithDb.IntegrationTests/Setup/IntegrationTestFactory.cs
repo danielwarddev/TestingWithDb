@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Respawn;
-using Testcontainers.PostgreSql;
+using Testcontainers.MySql;
 using TestingWithDb.Database;
 
 namespace TestingWithDb.IntegrationTests.Setup;
@@ -18,12 +18,12 @@ public class DatabaseTestCollection : ICollectionFixture<IntegrationTestFactory>
 
 public class IntegrationTestFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
-    private readonly PostgreSqlContainer _container = new PostgreSqlBuilder()
-        .WithImage("postgres:latest") // You may want to change this to be the version your production db is on
+    private readonly MySqlContainer _container  = new MySqlBuilder()
         .WithDatabase("db")
         .WithUsername("postgres")
         .WithPassword("postgres")
-        .WithWaitStrategy(Wait.ForUnixContainer().UntilCommandIsCompleted("pg_isready"))
+        .WithExposedPort(3306)
+        .WithWaitStrategy(Wait.ForUnixContainer() .UntilPortIsAvailable(3306))
         .WithCleanUp(true)
         .Build();
 
@@ -35,20 +35,29 @@ public class IntegrationTestFactory : WebApplicationFactory<Program>, IAsyncLife
     {
         await _respawner.ResetAsync(_connection);
     }
-
+ 
     public async Task InitializeAsync()
     {
-        await _container.StartAsync();
-
-        Db = Services.CreateScope().ServiceProvider.GetRequiredService<ProductContext>();
-        _connection = Db.Database.GetDbConnection();
-        await _connection.OpenAsync();
-
-        _respawner = await Respawner.CreateAsync(_connection, new RespawnerOptions
+        try
         {
-            DbAdapter = DbAdapter.Postgres,
-            SchemasToInclude = new[] { "public" }
-        });
+            await _container.StartAsync();
+            await _container.ExecAsync(["mysql", "-p", "mysql", "-e", "ALTER DATABASE db CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;"]);
+
+            Db = Services.CreateScope().ServiceProvider.GetRequiredService<ProductContext>();
+            _connection = Db.Database.GetDbConnection();
+            await _connection.OpenAsync();
+
+            _respawner = await Respawner.CreateAsync(_connection, new RespawnerOptions
+            {
+                DbAdapter = DbAdapter.MySql,
+                SchemasToInclude = new[] { "db" }
+            });
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            throw;
+        }
     }
 
     public new async Task DisposeAsync()
@@ -59,12 +68,14 @@ public class IntegrationTestFactory : WebApplicationFactory<Program>, IAsyncLife
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
+        var connString = _container.GetConnectionString();
+        
         builder.ConfigureTestServices(services =>
         {
             services.RemoveDbContext<ProductContext>();
             services.AddDbContext<ProductContext>(options =>
             {
-                options.UseNpgsql(_container.GetConnectionString());
+                options.UseMySql(connString, ServerVersion.AutoDetect(connString));
             });
             services.EnsureDbCreated<ProductContext>();
         });
