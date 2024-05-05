@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using TestingWithDb.Database;
+using TestingWithDb.Domain.AggregatesModel;
+using TestingWithDb.Infrastructure;
 
 namespace TestingWithDb.Api;
 
@@ -10,26 +11,23 @@ public interface IFavoriteService
 
 public class FavoriteService : IFavoriteService
 {
-    private readonly ProductContext _context;
+    private readonly ProductDbContext _context;
 
-    public FavoriteService(ProductContext context)
+    public FavoriteService(ProductDbContext context)
     {
         _context = context;
     }
 
     public async Task FavoriteProduct(int productId, int userId)
     {
-        var existingFavorite = await _context.ProductFavorite.FirstOrDefaultAsync(x =>
+        var existingFavorite = await _context.ProductFavorites.FirstOrDefaultAsync(x =>
             x.ProductId == productId &&
             x.UserId == userId
         );
 
-        if (existingFavorite != null)
-        {
-            return;
-        }
+        if (existingFavorite != null) return;
 
-        await _context.ProductFavorite.AddAsync(new ProductFavorite
+        await _context.ProductFavorites.AddAsync(new ProductFavorite
         {
             ProductId = productId,
             UserId = userId

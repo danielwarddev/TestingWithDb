@@ -1,31 +1,37 @@
 ﻿using AutoFixture;
-using TestingWithDb.Database;
+using TestingWithDb.Infrastructure;
 
 namespace TestingWithDb.IntegrationTests.Setup;
 
 [Collection(nameof(DatabaseTestCollection))]
 public abstract class DatabaseTest : IAsyncLifetime
 {
-    private Func<Task> _resetDatabase;
-    protected readonly ProductContext Db;
+    protected readonly ProductDbContext DbContext;
     protected readonly Fixture Fixture;
+    private readonly Func<Task> _resetDatabase;
 
     public DatabaseTest(IntegrationTestFactory factory)
     {
         _resetDatabase = factory.ResetDatabase;
-        Db = factory.Db;
+        DbContext = factory.DbContext;
         Fixture = new Fixture();
         Fixture.Customize(new NoCircularReferencesCustomization());
         Fixture.Customize(new IgnoreVirtualMembersCustomization());
     }
 
-    public async Task Insert<T>(T entity) where T : class
+    public Task InitializeAsync()
     {
-        await Db.AddAsync(entity);
-        await Db.SaveChangesAsync();
+        return Task.CompletedTask;
     }
 
-    public Task InitializeAsync() => Task.CompletedTask;
+    public Task DisposeAsync()
+    {
+        return _resetDatabase();
+    }
 
-    public Task DisposeAsync() => _resetDatabase();
+    public async Task Insert<T>(T entity) where T : class
+    {
+        await DbContext.AddAsync(entity);
+        await DbContext.SaveChangesAsync();
+    }
 }
