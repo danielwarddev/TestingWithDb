@@ -1,7 +1,7 @@
 ﻿using AutoFixture;
 using FluentAssertions;
 using TestingWithDb.Api;
-using TestingWithDb.Database;
+using TestingWithDb.Domain.AggregatesModel;
 using TestingWithDb.IntegrationTests.Setup;
 
 namespace TestingWithDb.IntegrationTests;
@@ -14,7 +14,12 @@ public class ReviewServiceTests : DatabaseTest, IAsyncLifetime
 
     public ReviewServiceTests(IntegrationTestFactory factory) : base(factory)
     {
-        _service = new ReviewService(Db);
+        _service = new ReviewService(DbContext);
+    }
+
+    public new async Task InitializeAsync()
+    {
+        await SeedDb();
     }
 
     [Fact]
@@ -28,7 +33,7 @@ public class ReviewServiceTests : DatabaseTest, IAsyncLifetime
         };
         await _service.ReviewProduct(_existingProduct.Id, _existingUser.Id, expectedReview.ReviewContent);
 
-        var allReviews = Db.ProductReview.ToList();
+        var allReviews = DbContext.ProductReviews.ToList();
         allReviews
             .Should().ContainSingle()
             .Which.Should().BeEquivalentTo(expectedReview, options => options
@@ -50,15 +55,10 @@ public class ReviewServiceTests : DatabaseTest, IAsyncLifetime
 
         await _service.ReviewProduct(_existingProduct.Id, _existingUser.Id, "new review content");
 
-        var allFavorites = Db.ProductReview.ToList();
+        var allFavorites = DbContext.ProductReviews.ToList();
         allFavorites
             .Should().ContainSingle()
             .Which.ReviewContent.Should().BeEquivalentTo("new review content");
-    }
-
-    public new async Task InitializeAsync()
-    {
-        await SeedDb();
     }
 
     private async Task SeedDb()

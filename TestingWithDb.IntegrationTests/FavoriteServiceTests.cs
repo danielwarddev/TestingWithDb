@@ -1,7 +1,7 @@
 ﻿using AutoFixture;
 using FluentAssertions;
 using TestingWithDb.Api;
-using TestingWithDb.Database;
+using TestingWithDb.Domain.AggregatesModel;
 using TestingWithDb.IntegrationTests.Setup;
 
 namespace TestingWithDb.IntegrationTests;
@@ -14,7 +14,12 @@ public class FavoriteServiceTests : DatabaseTest, IAsyncLifetime
 
     public FavoriteServiceTests(IntegrationTestFactory factory) : base(factory)
     {
-        _service = new FavoriteService(Db);
+        _service = new FavoriteService(DbContext);
+    }
+
+    public new async Task InitializeAsync()
+    {
+        await SeedDb();
     }
 
     [Fact]
@@ -27,7 +32,7 @@ public class FavoriteServiceTests : DatabaseTest, IAsyncLifetime
         };
         await _service.FavoriteProduct(_existingProduct.Id, _existingUser.Id);
 
-        var allFavorites = Db.ProductFavorite.ToList();
+        var allFavorites = DbContext.ProductFavorites.ToList();
         allFavorites
             .Should().ContainSingle()
             .Which.Should().BeEquivalentTo(expectedFavorite, options => options
@@ -48,13 +53,8 @@ public class FavoriteServiceTests : DatabaseTest, IAsyncLifetime
 
         await _service.FavoriteProduct(_existingProduct.Id, _existingUser.Id);
 
-        var allFavorites = Db.ProductFavorite.ToList();
+        var allFavorites = DbContext.ProductFavorites.ToList();
         allFavorites.Should().ContainSingle();
-    }
-
-    public new async Task InitializeAsync()
-    {
-        await SeedDb();
     }
 
     private async Task SeedDb()

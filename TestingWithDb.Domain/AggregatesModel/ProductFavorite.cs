@@ -1,4 +1,4 @@
-﻿namespace TestingWithDb.Database;
+namespace TestingWithDb.Domain.AggregatesModel;
 
 public class ProductFavorite
 {
